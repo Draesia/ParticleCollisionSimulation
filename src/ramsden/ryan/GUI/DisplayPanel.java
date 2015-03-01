@@ -187,7 +187,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 		};
 
 		new TextComponent(questionDialog, "Question", new Point(5, 9), 16, Font.BOLD);
-		questionButton = new Button(questionDialog, new Rectangle(112, 52, 40, 20), "Mark") {
+		questionButton = new Button(questionDialog, new Rectangle(112, 52, 70, 20), "Mark") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
@@ -212,7 +212,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 			@Override
 			public boolean validate(char c)
 			{
-				return (Character.isDigit(c) || (c+"").equals("."));
+				return (Character.isDigit(c) || (c+"").equals(".") || (c+"").equals("-"));
 			}
 		};
 
@@ -608,7 +608,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 
 	@Override
 	public void keyPressed(KeyEvent k) {
-		if(k.getKeyCode() == KeyEvent.VK_S) Control.takeSnapShot(); 
+		if(k.getKeyCode() == KeyEvent.VK_F1) Control.takeSnapShot(); 
 		if(Control.selected != null && Information.selected != -1) {
 			char keyChar = k.getKeyChar();
 			if(Character.isDigit(keyChar) || keyChar == (char)46 || keyChar == (char)45) {

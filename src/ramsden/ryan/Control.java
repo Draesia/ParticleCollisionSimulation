@@ -68,13 +68,26 @@ public class Control {
 		PrintWriter writer;
 		try {
 			writer = new PrintWriter("screenshots"+File.separator+filename+".txt", "UTF-8");
-			writer.println("The first line");
-			writer.println("The second line");
+			double totalKE =0, totalMx=0, totalMy=0; int pindex = 0;
+			for(Particle p : model.getAtoms()) {
+				pindex++;
+				double ke = p.getConvertedKE();
+				double mx = p.getConvertedMomentumX();
+				double my = p.getConvertedMomentumY();
+				totalKE += ke;
+				totalMx += mx;
+				totalMy += my;
+				writer.println("Particle "+pindex+": K.E = "+Information.format(ke)+"   Mx = "+Information.format(mx)+"   My = "+Information.format(my)+"   Mass = "+Information.format(p.getConvertedMass())+" Velocity = "+Information.format(p.getConvertedVelocity())+" Vx = "+Information.format(p.getConvertedVelocityX())+" Vy = "+Information.format(p.getConvertedVelocityY()));
+				
+			}
+			writer.println("Total K.E. : "+Information.format(totalKE));		
+			writer.println("Total X Momentum : "+Information.format(totalMx));
+			writer.println("Total Y Momentum : "+Information.format(totalMy));
 			writer.close();
 		} catch (FileNotFoundException | UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
-		outputValues();
+		//outputValues();
 	}
 
 
@@ -254,20 +267,6 @@ public class Control {
 			return matcher.find();
 		}
 		return false;
-	}
-
-
-
-	public static void outputValues() {
-		double totalKE =0, totalMx=0, totalMy=0;
-		for(Particle p : model.getAtoms()) {
-			totalKE += p.getConvertedKE();
-			totalMx += Math.abs(p.getConvertedMomentumX());
-			totalMy += Math.abs(p.getConvertedMomentumY());
-		}
-		System.out.println("Total K.E. : "+Information.format(totalKE));		
-		System.out.println("Total X Momentum : "+Information.format(totalMx));
-		System.out.println("Total Y Momentum : "+Information.format(totalMy));
 	}
 
 

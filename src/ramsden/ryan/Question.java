@@ -26,7 +26,7 @@ public class Question {
 		private Colour(Color color) { this.color = color;}
 		public Color getColor() { return color;}};
 	
-	public enum Value { VELOCITY("Velocity"), MOMENTUM("Momentum"), KE("Kinetic Energy");
+	public enum Value { VELOCITY("Velocity"), MOMENTUMY("Y Momentum"), MOMENTUMX("X Momentum"), KE("Kinetic Energy");
 		public String str;
 		private Value(String s) {this.str = s;};};
 
@@ -162,15 +162,18 @@ public class Question {
 		case KE:
 			answer = ap.getConvertedKE();
 			break;
-		case MOMENTUM:
-// TODO			answer = ap.getConvertedMomentum();
+		case MOMENTUMX:
+			answer = ap.getConvertedMomentumX();
+			break;
+		case MOMENTUMY:
+			answer = ap.getConvertedMomentumY();
 			break;
 		case VELOCITY:
 		default:
 			answer = ap.getConvertedVelocity();
 			break;
 		}
-
+		System.out.println("Answer: "+answer);
 		return initialEngine;
 	}
 	

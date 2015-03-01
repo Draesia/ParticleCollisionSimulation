@@ -79,8 +79,8 @@ public class Button extends Interface {
 			s = "";
 		}
 		getTextComponent().setText(s);
-		//if(getTextComponent().container.width+8 > container.width) 
-		//	setSize(getTextComponent().container.width+8, container.height);
+		if(getTextComponent().container.width+8 > container.width) 
+			setSize(getTextComponent().container.width+8, container.height);
 		centerText();
 	}
 
