@@ -3,7 +3,6 @@ package ramsden.ryan;
 import java.util.ArrayList;
 
 import ramsden.ryan.GUI.DisplayPanel;
-import ramsden.ryan.GUI.Information;
 
 public class Engine {
 

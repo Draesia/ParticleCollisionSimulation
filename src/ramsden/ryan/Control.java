@@ -12,7 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
-import javax.swing.JPanel;
 
 import ramsden.ryan.GUI.DisplayPanel;
 import ramsden.ryan.GUI.Information;
@@ -171,9 +170,6 @@ public class Control {
 			while (now - lastRenderTime < TARGET_TIME_BETWEEN_RENDERS && now - lastUpdateTime < TIME_BETWEEN_UPDATES)
 			{
 				Thread.yield();
-				//This stops the app from consuming all your CPU. It makes this slightly less accurate, but is worth it.
-				//You can remove this line and it will still work (better), your CPU just climbs on certain OSes.
-				//FYI on some OS's this can cause pretty bad stuttering. Scroll down and have a look at different peoples' solutions to this.
 				try {Thread.sleep(1);} catch(Exception e) {} 
 
 				now = System.nanoTime();

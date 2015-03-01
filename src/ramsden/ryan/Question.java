@@ -2,10 +2,6 @@ package ramsden.ryan;
 
 import java.awt.Color;
 import java.util.Random;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import ramsden.ryan.GUI.Dialog;
 
 public class Question {
 
@@ -177,10 +173,6 @@ public class Question {
 		return initialEngine;
 	}
 	
-	private float randSignDecimal() {
-		return (random.nextFloat()-0.5F)*2;
-	}
-	
 	private SQL getSQL()
 	{
 		return Control.manager.getSQL();
@@ -200,7 +192,7 @@ public class Question {
 		boolean isCorrect = isCorrect(input);
 		if(myAnswer == null) {
 			myAnswer = input;
-			if(getSQL().isConnected())
+			if(getSQL().isConnected() && !Control.getUsername().isEmpty())
 			{
 				String sql = "INSERT INTO `answers`(`studentID`, `seed`, `answer`, `isCorrect`) VALUES ("+Control.getStudentID()+","+seed+",'"+input+"',"+isCorrect+")";
 				getSQL().updateQuery(sql);

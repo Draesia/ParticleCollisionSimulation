@@ -57,7 +57,6 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 	public TextComponent loggedinAs;
 	public Button loginButton;
 	public Button questionButton;
-	private Button tloginButton;
 	public TextComponent sid;
 	private Button options;
 	public Button add;
@@ -391,16 +390,18 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 					//SELECT * FROM `teachers` WHERE `username`='PDacey' AND `password`='fermentum'
 					if(getText().equals("Logout"))
 					{
-						Control.setUsername("");
+						Control.setUsername(null);
 						Control.setStudentID("");
 						studentID.setText("");
 						username.setText("");
 						password.setText("");
+						loggedinAs.setText("");
 						setText("Login");
 						return;
 					}
 					if(!studentID.getText().isEmpty() || (!username.getText().isEmpty()&&!password.getText().isEmpty())) {
 						sid.setText("Connecting");
+						sid.setColor(Color.BLACK);
 						SQL sql = Control.manager.getSQL();
 						options.setHidden(true);
 						if(Control.manager.isConnected()) {
@@ -430,7 +431,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				}
 			}
 		};
-		tloginButton = new Button(login, new Rectangle(10, 76, 106, 20), "Teacher Login") {
+		new Button(login, new Rectangle(10, 76, 106, 20), "Teacher Login") {
 			boolean tLogin = false;
 			@Override
 			public void click(Point p, boolean onClickDown) {

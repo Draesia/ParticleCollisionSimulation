@@ -23,10 +23,6 @@ public class Particle extends Object {
 	public boolean[] view = new boolean[8];
 	private double bearing;
 	
-	/**
-	 * Construct a dimensionless, massless, invisible,
-	 * stationary particle at the origin.
-	 */
 	public Particle() {
 		newColor();
 		for(int i = 0; i < 8; i++) view[i] = true;
