@@ -33,7 +33,6 @@ public abstract class Interface {
 			setParent(i);
 		} else mainInterfaces.add(this);
 		click = true;
-		
 	}
 	
 	public void setCloseable(boolean b)
@@ -43,22 +42,39 @@ public abstract class Interface {
 				@Override
 				public void click(Point p, boolean b)
 				{
-					this.getParent().setHidden(true);
+					this.getParent().onClose();
 				}
 			};
 		} else close = null;
 	}
+	
+	public void onClose() {
+		this.setHidden(true);
+	}
+	
+	public void remove() {
+		if(getParent() != null) getParent().children.remove(this);
+		else mainInterfaces.remove(this);
+	}
+	
+
+	public void setSize(int w, int h) {
+		container.setSize(w, h);
+		if(close!=null)close.moveContainer(container.width-28, 4);
+	}
+
 	
 	public abstract void drawInterface(Graphics2D g2d, int offsetX, int offsetY);
 	public abstract void click(Point p, boolean isClickDown);
 	
 	public void drawChildren(Graphics2D g2d, int offsetX, int offsetY)
 	{
-		if(children != null && children.size() > 0) for(Interface i : children) if(i != null) i.drawInterface(g2d, getContainer().x+offsetX, getContainer().y+offsetY);
+		if(children != null && children.size() > 0) for(Interface i : children) if(i != null && !i.isHidden()) i.drawInterface(g2d, getContainer().x+offsetX, getContainer().y+offsetY);
 	}
 	
 	public void clicked(Point p, boolean isClickDown)
 	{
+		
 		p.translate(-getContainer().x, -getContainer().y);
 		if(children != null) for(Interface c : children) if(c.canClick() && c.getContainer().contains(p)) { c.clicked(p, isClickDown); return; }
 		click(p, isClickDown);

@@ -8,7 +8,7 @@ import ramsden.ryan.GUI.GradientImage;
 
 public class Particle extends Object {
 
-	private double radius = 0;
+	private double radius = 50;
 	private double mass = 0;
 	private Color color = new Color(0, true);
 	private Image image = null;
@@ -21,6 +21,7 @@ public class Particle extends Object {
 	public static Random r = new Random();
 	
 	public boolean[] view = new boolean[8];
+	private double bearing;
 	
 	/**
 	 * Construct a dimensionless, massless, invisible,
@@ -30,6 +31,7 @@ public class Particle extends Object {
 		newColor();
 		for(int i = 0; i < 8; i++) view[i] = true;
 		mass = 1;
+		radius = 100;
 	}
 
 	public Particle(Particle p) {
@@ -43,7 +45,7 @@ public class Particle extends Object {
 
 	/** Update this particle's Image. */
 	public void updateImage() {
-		setImage(GradientImage.createImage((int) radius, color));
+		setImage(GradientImage.createImage((int) radius+1, color));
 	}
 
 	public void newColor()
@@ -82,7 +84,7 @@ public class Particle extends Object {
 	
 	public Vector getDrawPosition(float interpolation)
 	{
-		if(!Control.playing) return new Vector(p.x - radius, p.y - radius);
+		if(!Control.isPlaying()) return new Vector(p.x - radius, p.y - radius);
 		int drawX = (int) ((p.x - d.x) * interpolation + d.x - radius);
 		int drawY = (int) ((p.y - d.y) * interpolation + d.y - radius);
         return new Vector(drawX, drawY);
@@ -154,8 +156,13 @@ public class Particle extends Object {
 
 	/** Set this particle's x, y velocity components. */
 	public void setVelocity(double v) {
+		if(getVx() == 0 && getVy() == 0 && v != 0) {
+			double radians = Math.toRadians(bearing);
+			this.v.x = Math.sin(radians);
+			this.v.y = -Math.cos(radians);
+		} else if (v == 0) setBearing(getBearing());
 		this.setVelocity(this.v.unitVector().scale(v));
-		if(getVx() == 0 && getVy() == 0) this.v.y = -v;
+		
 	}
 	
 	/** Set this particle's radius and imputed mass. */
@@ -173,7 +180,7 @@ public class Particle extends Object {
 	public Color getColor() { return this.color; }
 
 	/** Set this particle's Color. */
-	public void setColor(Color color) { this.color = color; }
+	public void setColor(Color color) { this.color = color; updateImage(); }
 
 	/** Set this particle's Image. */
 	public Image getImage() { return image; }
@@ -190,15 +197,65 @@ public class Particle extends Object {
 	
 	public double getBearing()
 	{
+		if(getVx() == 0 && getVy() == 0) return bearing;
 		return (360+Math.toDegrees(Math.atan2(v.x, -v.y)))%360;
 	}
 	
 	public void setBearing(double value)
 	{
+		bearing = (360+value)%360;
 		double radians = Math.toRadians(value);
 		double velocity = getVNorm();
 		this.v.x = velocity*Math.sin(radians);
 		this.v.y = -velocity*Math.cos(radians);
 	}
+	
+	/** Get converted units */
+	
+	public double getConvertedVelocity()
+	{
+		return 3*getVNorm()/5;
+	}
+	
+	public double getConvertedVelocityX()
+	{
+		return 3*getVx()/5;
+	}
+	
+	public double getConvertedVelocityY()
+	{
+		return 3*getVy()/5;
+	}
+	
+	public double getConvertedKE()
+	{
+		return getConvertedVelocity()*getConvertedVelocity()*getM()/2;
+	}
+	
+	public double getConvertedMomentumX()
+	{
+		return getConvertedVelocityX()*getM();
+	}
+	
+	public double getConvertedMomentumY()
+	{
+		return getConvertedVelocityY()*getM();
+	}
+	
+	public double getConvertedMass()
+	{
+		return getM();
+	}
+	
+	public double getConvertedRadius()
+	{
+		return getR()/50;
+	}
+	
+	
+	
+	
+	
+	
 
 }

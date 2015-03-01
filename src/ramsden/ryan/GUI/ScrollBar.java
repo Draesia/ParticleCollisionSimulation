@@ -1,5 +1,6 @@
 package ramsden.ryan.GUI;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -28,9 +29,12 @@ public class ScrollBar extends Interface {
 	
 	@Override
 	public void drawInterface(Graphics2D g2d, int offsetX, int offsetY) {
+		g2d.setColor(Color.gray);
+		g2d.fillRect(getContainer().x+offsetX, getContainer().y+offsetY, getContainer().width, getContainer().height);
 		g2d.setColor(getColor());
-		g2d.drawRect(getContainer().x+offsetX, getContainer().y+offsetY, getContainer().width, getContainer().height);
 		g2d.fillRect(getContainer().x+offsetX, (int) (getContainer().y+offsetY+scrollAmount), getContainer().width, scrollSize);
+		g2d.setColor(Color.gray);
+		g2d.drawRect(getContainer().x+offsetX, (int) (getContainer().y+offsetY+scrollAmount), getContainer().width, scrollSize);
 	}
 
 	@Override

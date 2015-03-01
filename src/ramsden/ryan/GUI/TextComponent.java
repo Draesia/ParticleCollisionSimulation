@@ -1,5 +1,6 @@
 package ramsden.ryan.GUI;
 
+import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -11,13 +12,13 @@ public class TextComponent extends Interface {
 
 	public String text;
 	public Font font = new Font("Verdana", Font.PLAIN, 12);
-	public FontMetrics fm;
-	
 	
 	public TextComponent(Interface i, String text, Point p) {
 		super(i, new Rectangle(p.x, p.y, 0, 0));
 		setText(text);
-		setColor(Color.BLACK);
+		setStyle(Font.BOLD);
+		if(i instanceof Dialog) setColor(Color.LIGHT_GRAY);
+		else setColor(Color.BLACK);
 		click = false;
 	}
 	
@@ -30,20 +31,18 @@ public class TextComponent extends Interface {
 		this(i, text, p, size);
 		setStyle(style);
 	}
+	
+	public TextComponent(Interface i, String text, Point p, int size, int style, Color c) {
+		this(i, text, p, size, style);
+		setColor(c);
+	}
 
 	@Override
 	public void drawInterface(Graphics2D g2d, int offsetX, int offsetY) {
 		g2d.setColor(getColor());
 		g2d.setFont(font);
-		
-		if(fm == null) {
-			fm = g2d.getFontMetrics();
-			updateContainer();
-		}
-		
 		Rectangle r = getContainer();
 		g2d.drawString(text, r.x+offsetX, r.y+offsetY+r.height);
-		//if(!text.isEmpty()) g2d.drawRect(r.x+offsetX, r.y+offsetY, r.width, r.height);
 	}
 
 	@Override
@@ -52,12 +51,13 @@ public class TextComponent extends Interface {
 	public void setText(String text)
 	{
 		this.text = text;
-		if(fm != null) updateContainer();
+		updateContainer();
 	}
 
 	public void setFont(Font font)
 	{
 		this.font = font;
+		
 	}
 	
 	public void setStyle(int style)
@@ -72,6 +72,7 @@ public class TextComponent extends Interface {
 
 	public void updateContainer()
 	{
+		FontMetrics fm = new Canvas().getFontMetrics(font);
 		int hgt = fm.getHeight();
 		int adv = fm.stringWidth(text);
 		getContainer().setSize(adv+2 , hgt-2);

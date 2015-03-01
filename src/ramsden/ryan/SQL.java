@@ -50,7 +50,6 @@ public class SQL
 		try {
 			stmt.executeUpdate(query);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

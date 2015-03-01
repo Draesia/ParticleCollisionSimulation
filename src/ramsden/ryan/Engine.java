@@ -3,11 +3,11 @@ package ramsden.ryan;
 import java.util.ArrayList;
 
 import ramsden.ryan.GUI.DisplayPanel;
+import ramsden.ryan.GUI.Information;
 
 public class Engine {
 
 	public static final int MAX_ATOMS = 20;
-	private static final int MIN_RADIUS = 50;
 	private ArrayList<Particle> atoms;
 
 
@@ -19,42 +19,76 @@ public class Engine {
 	private Vector un = new Vector(); // unit normal
 	private Vector ut = new Vector(); // unit tangent
 
-	public int collisions;
+	public int collisions, gameTicks, maxGameTicks = 0, collideAtTicks = 0;
+
+	private int width = 0, height = 0;
+
+
 
 	/** Construct a container of atoms. */
-	public Engine() {
+	public Engine(int width, int height) {
 		atoms = new ArrayList<Particle>(MAX_ATOMS);
+		this.width = width;
+		this.height = height;
 	}
-	
-	@SuppressWarnings("unchecked")
+
 	public Engine(Engine copy) {
 		setState(copy);
 	}
-	
+
 	public void setState(Engine copy) {
 		atoms = new ArrayList<Particle>(MAX_ATOMS);
 		collisions = 0;
+		maxGameTicks = 0;
+		gameTicks = 0;
+		collideAtTicks = 0;
 		for(Particle p : copy.atoms) atoms.add(new Particle(p));
+		if(this != Control.model) {
+			setWidth(copy.getWidth());
+			setHeight(copy.getHeight());
+		} else {
+			scale(copy.getWidth(), copy.getHeight(), Control.width, Control.height);
+		}
 	}
-	
-	
+
+	public void scale(int widthOld, int heightOld, int width, int height) {
+
+		double scaleW = 1;
+		double scaleH = 1;
+		if(Control.currentQuestion == null) {
+			scaleW = (double)width/widthOld;
+			scaleH = (double)height/heightOld;
+		}
+		for(Particle p : atoms) {
+			Vector pos = p.getPosition();
+			p.setPosition(width/2 + (pos.x - widthOld/2)*scaleW, height/2 + (pos.y - heightOld/2)*scaleH);
+		}
+
+	}
+
 	public void updateImages() {
 		for (Particle atom : getAtoms()) {atom.updateImage(); atom.updateDrawPosition();}
 	}
 
+	public void updateDrawPositions() {
+		for (Particle atom : getAtoms()) {atom.updateDrawPosition();}
+	}
+
 	public void updateGame() {
+		gameTicks++;
+		if(Control.currentQuestion != null && maxGameTicks != 0 && gameTicks >= maxGameTicks) {
+			Control.setPlaying(false);
+			if(gameTicks > maxGameTicks) {
+				Control.model.setState(Control.currentQuestion.generateQuestionEngine());
+				Control.model.updateImages();
+				DisplayPanel.collided1=null;
+				DisplayPanel.collided2=null;
+			}
+			return;
+		}
 		for (Particle atom : getAtoms()) iterate(atom);
 		for (Particle atom : getAtoms()) checkCollisions(atom);
 
-
-		//		for (int i = 0; i < getAtoms().size(); i++) {
-		//			Particle p = getAtoms().get(i);
-		//			Vector p1 = p.getPosition();
-		//			if(p1.subtract(new Vector(10, 10)).norm() < p.getR()) getAtoms().remove(p);
-		//			if(p1.subtract(new Vector(10, 0)).norm() < p.getR()) getAtoms().remove(p);
-		//			if(p1.subtract(new Vector(Control.width-10, 0)).norm() < p.getR()) getAtoms().remove(p);
-		//			if(p1.subtract(new Vector(Control.width-10, 0)).norm() < p.getR()) getAtoms().remove(p);
-		//		}
 	}
 
 	/** Advance each atom. */
@@ -65,7 +99,7 @@ public class Engine {
 		v1 = atom1.getVelocity();
 		p1.add(v1);
 		atom1.setPosition(p1);
-		
+
 	}
 
 
@@ -93,46 +127,59 @@ public class Engine {
 		p2 = a2.getPosition(new Vector());
 		n = n.set(p1).subtract(p2);
 		double norm = n.norm();
+		if(norm > radius - 5 && a1.getVelocity().isZero() && a2.getVelocity().isZero()) return false; 
 		return (norm < radius);
 	}
 
 	private void collideAtoms(Particle a1, Particle a2) {
 
 		collisions++;
-		
-		if(Control.stepMode) Control.playing = false;
-		
 
-		double radius = a1.getR() + a2.getR();
-		//Vector momentumVectorBefore = a1.getVelocity().scale(a1.getM()).add(a2.getVelocity().scale(a2.getM()));
-		//		// Move to start of collision
+		if(!(Control.stepMode && this == Control.model && collideAtTicks > gameTicks)) {
+			double radius = a1.getR() + a2.getR();
 
-		double divideBy = Math.max(a1.getVelocity().norm(), a2.getVelocity().norm());
-		if(divideBy == 0) divideBy = 5;
-		for(int i = 0;i < Math.ceil(divideBy); i++) {
-			//for (Particle atom : getAtoms()) uniterate(atom, divideBy);
-			a1.setPosition(a1.getPosition().subtract(a1.getVelocity().divide(divideBy)));
-			a2.setPosition(a2.getPosition().subtract(a2.getVelocity().divide(divideBy)));
-			if(!willCollide(a1, a2)) break;
+			//This is so the collision is more accurate when velocity is large
+			//It moves the particles so they have a smaller intersection upon collision, making it more accurate.
+			//
+			double divideBy = Math.max(a1.getVelocity().norm(), a2.getVelocity().norm());
+			if(divideBy == 0) divideBy = 5;
+			for(int i = 0;i < Math.ceil(divideBy); i++) {
+				a1.setPosition(a1.getPosition().subtract(a1.getVelocity().divide(divideBy)));
+				a2.setPosition(a2.getPosition().subtract(a2.getVelocity().divide(divideBy)));
+				if(!willCollide(a1, a2)) break;
+			}
+			p1 = a1.getPosition();
+			p2 = a2.getPosition();
+			n = n.set(p1).subtract(p2);
+			if(!willCollide(a1, a2)) {
+				a1.setPosition(a1.getPosition().add(a1.getVelocity().divide(divideBy)));
+				a2.setPosition(a2.getPosition().add(a2.getVelocity().divide(divideBy)));
+			}
+			if(willCollide(a1, a2)) {
+				double dr = (radius - n.norm()) / 2;
+				un = un.set(n).unitVector();
+				p1.add(un.scale(dr));
+				un = un.set(n).unitVector();
+				p2.add(un.scale(-dr));
+				a1.setPosition(p1);
+				a2.setPosition(p2);
+			}
 		}
-		//if(i > 0) {
-		
-		p1 = a1.getPosition(new Vector());
-		p2 = a2.getPosition(new Vector());
-		n = n.set(p1).subtract(p2); //Relative Vector
-		
-		if(willCollide(a1, a2)) {
-			double dr = (radius - n.norm()) / 2;
-			un = un.set(n).unitVector();
-			p1.add(un.scale(dr));
-			un = un.set(n).unitVector();
-			p2.add(un.scale(-dr));
-			a1.setPosition(p1);
-			a2.setPosition(p2);
-		} else {
-			a1.setPosition(a1.getPosition().add(a1.getVelocity().divide(divideBy)));
-			a2.setPosition(a2.getPosition().add(a2.getVelocity().divide(divideBy)));
-			//}
+		if(Control.stepMode && this == Control.model) {
+			Control.setPlaying(false);
+			DisplayPanel.collided1 = a1;
+			DisplayPanel.collided2 = a2;
+			if(collideAtTicks < gameTicks) {
+				collideAtTicks = gameTicks+1;
+				return;
+			}
+		}
+		if(Control.currentQuestion != null && collisions >= 1) {
+			for(int i = 0; i < 8; i++) {
+				a1.view[i] = false;
+				a2.view[i] = false;
+			}
+			maxGameTicks = (int) (gameTicks + Control.GAME_HERTZ/4);
 		}
 
 		p1 = a1.getPosition(new Vector());
@@ -160,6 +207,9 @@ public class Engine {
 		v1 = v1.set(un).scale(v2nNew);
 		v2 = v2.set(ut).scale(v2t);
 		a2.setVelocity(v1.add(v2));
+
+		//Control.outputValues();
+
 	}
 
 	public boolean willCollideWhenPlaced(Particle atom1)
@@ -171,35 +221,50 @@ public class Engine {
 		}
 		return false;
 	}
-	
+
 	// Check for collision with wall
 	private void collideWalls(Particle atom) {
 		double radius = atom.getR();
+		boolean hitWall = false;
 		p1 = atom.getPosition(p1);
 		v1 = atom.getVelocity(v1);
 		if (p1.x < radius) {
 			p1.x = radius;
 			v1.x = -v1.x;
+			hitWall = true;
 		}
 		if (p1.y < radius) {
 			p1.y = radius;
 			v1.y = -v1.y;
+			hitWall = true;
 		}
-		if (p1.x > Control.width - radius) {
-			p1.x = Control.width - radius;
+
+		if (p1.x > getWidth() - radius) {
+			p1.x = getWidth() - radius;
 			v1.x = -v1.x;
+			hitWall = true;
 		}
-		if (p1.y > Control.height - radius) {
-			p1.y = Control.height - radius;
+		if (p1.y > getHeight() - radius) {
+			p1.y = getHeight() - radius;
 			v1.y = -v1.y;
+			hitWall = true;
 		}
-		atom.setPosition(p1);
-		atom.setVelocity(v1);
+
+		if(hitWall){
+			if(maxGameTicks != 0) maxGameTicks = gameTicks-1; //Walls will bug everything out
+			else {
+				atom.setVelocity(v1);
+				atom.setPosition(p1);
+			}
+		}
 	}
 
 	public void clear()
 	{
 		atoms.clear();
+		gameTicks = 0;
+		collideAtTicks = 0;
+		maxGameTicks = 0;
 	}
 
 	public ArrayList<Particle> getAtoms() { return atoms; }
@@ -211,11 +276,26 @@ public class Engine {
 	public Particle getNewAtom()
 	{
 		Particle p = new Particle();
-		p.setR(50);
+		p.setR(100);
 		p.updateImage();
 
 		return p;
 	}
 
+	public int getWidth() {
+		return (this == Control.model ? Control.width : width);
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public int getHeight() {
+		return (this == Control.model ? Control.height : height);
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
 
 }

@@ -22,16 +22,18 @@ import ramsden.ryan.Control;
 import ramsden.ryan.Engine;
 import ramsden.ryan.Particle;
 import ramsden.ryan.Question;
+import ramsden.ryan.SQL;
 import ramsden.ryan.Vector;
 
 @SuppressWarnings("serial")
 public class DisplayPanel extends JPanel implements MouseListener, MouseMotionListener, ComponentListener, MouseWheelListener, KeyListener  {
 
-	static final Font font = new Font("Verdana", Font.BOLD, 18);
+	public static final Font font = new Font("Verdana", Font.BOLD, 18);
 	public static final Font fontsmall = new Font("Verdana", Font.BOLD, 12);
 	public static final DecimalFormat df = new DecimalFormat("#.##");
+	public static final DecimalFormat dfe = new DecimalFormat("##0.##E0");
 	public static HashMap<String, BufferedImage> images = new HashMap<String, BufferedImage>();
-	
+
 
 	public static Dialog login;
 	private boolean useGradient = false;
@@ -43,8 +45,10 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 	private float interpolation;
 	private Information info;
 	private TextInput studentID;
-	
-	private Dialog questionText;
+
+	public Dialog questionDialog;
+	public TextComponent questionText;
+	public TextInput questionInput;
 	private ResultsViewer answerViewer;
 	private TextInput username;
 	private TextInput password;
@@ -52,7 +56,14 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 	public static TextComponent fps;
 	public TextComponent loggedinAs;
 	public Button loginButton;
+	public Button questionButton;
+	private Button tloginButton;
+	public TextComponent sid;
+	private Button options;
+	public Button add;
 	public static ScrollBar currentScrollBar;
+
+	public static Particle collided1,collided2;
 
 	/** Construct a display panel. */
 	public DisplayPanel(final Engine model) {
@@ -81,7 +92,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 	/** Paint the display. */
 	@Override
 	protected void paintComponent(Graphics g) {
-		//super.paintComponent(g);
+		super.paintComponent(g);
 		//Create Background
 		g.setColor(Control.bgColor);
 		g.fillRect(0, 0, getWidth(), getHeight());
@@ -100,12 +111,19 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 			model.addAtom(newParticle);
 			newParticle = null;
 		}
+		g2D.setStroke(new BasicStroke(5));
 
+		for (Particle atom : model.getAtoms()) {
+			g2D.setColor(atom.getColor());
+			int dx = (int) (atom.getVelocity().x*Control.GAME_HERTZ);
+			int dy = (int) (atom.getVelocity().y*Control.GAME_HERTZ);
+			g2D.drawLine((int)atom.getX(), (int)atom.getY(), (int)atom.getX()+dx, (int)atom.getY()+dy);
+		}
+		g2D.setStroke(new BasicStroke());
 		for (Particle atom : model.getAtoms()) {
 			Vector drawVector = atom.getDrawPosition(interpolation);
 			if (useGradient && (atom != Control.selected || atom == currentDrag)) {
 				Image atomImage = atom.getImage();
-				
 				g2D.drawImage(atomImage, (int)drawVector.x, (int)drawVector.y, null);
 			} else {
 				Shape shape = atom.getShape(drawVector);
@@ -114,78 +132,97 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				g2D.setPaint(atom.getColor().darker().darker());
 				g2D.draw(shape);
 			}
-			g2D.setColor(atom.getColor());
-
-			int dx = (int) (atom.getVelocity().x*Control.GAME_HERTZ);
-			int dy = (int) (atom.getVelocity().y*Control.GAME_HERTZ);
-			g2D.drawLine((int)(drawVector.x+atom.getR()), (int)(drawVector.y+atom.getR()), (int)(drawVector.x+atom.getR())+dx, (int)(drawVector.y+atom.getR())+dy);
 		}
 
+
+		if(!Control.isPlaying() && collided1 != null && collided2 != null)
+		{
+			//g2D.setStroke(new BasicStroke(2));
+			g2D.setColor(Color.BLACK);
+			g2D.setFont(DisplayPanel.font);
+			g2D.drawLine((int)collided1.getX(), (int)collided1.getY(), (int)collided2.getX(), (int)collided2.getY());
+			g2D.drawLine((int)collided1.getX(), (int)collided1.getY(), (int)collided1.getX(), (int)collided2.getY());
+			g2D.drawLine((int)collided2.getX(), (int)collided2.getY(), (int)collided1.getX(), (int)collided2.getY());
+			double dx = Math.abs(collided1.getX() - collided2.getX());
+			double dy = Math.abs(collided1.getY() - collided2.getY());
+			if(dx!=0)g2D.drawString(Information.format(dx/Control.sqSize),(int)(collided2.getX()+collided1.getX())/2,-4+(int)collided2.getY());
+			if(dy!=0)g2D.drawString(Information.format(dy/Control.sqSize),4+(int)collided1.getX(), (int)(collided2.getY()+collided1.getY())/2);
+			//collided1.getPosition().x;
+		}
 
 		for(Interface i : Interface.mainInterfaces)
 		{
 			if(!i.isHidden()) i.drawInterface(g2D, 0, 0);
 		}
 
-		//		if(model.lastCollide != null && model.lastCollide1 != null) {
-		//			Particle[] particles = {model.lastCollide, model.lastCollide1};
-		//			Vector m = Particle.getSumMomentum(particles);
-		//			Vector p = Particle.centroid(particles);
-		//			g2D.setColor(Color.RED);
-		//			g2D.drawLine((int)p.x, (int)p.y, (int)(p.x+m.x), (int)(p.y+m.y));
-		//			g2D.setColor(Color.BLUE);
-		//			g2D.drawLine((int)particles[0].getX(), (int)particles[0].getY(), (int)particles[1].getX(), (int)particles[1].getY());
-		//		}
+
+
+		//				if(model.lastCollide != null && model.lastCollide1 != null) {
+		//					Particle[] particles = {model.lastCollide, model.lastCollide1};
+		//					Vector m = Particle.getSumMomentum(particles);
+		//					Vector p = Particle.centroid(particles);
+		//					g2D.setColor(Color.RED);
+		//					g2D.drawLine((int)p.x, (int)p.y, (int)(p.x+m.x), (int)(p.y+m.y));
+		//					g2D.setColor(Color.BLUE);
+		//					g2D.drawLine((int)particles[0].getX(), (int)particles[0].getY(), (int)particles[1].getX(), (int)particles[1].getY());
+		//				}
 	}
 
 	/** Creates the GUI Elements for the start of the simulation */
 	private void addInitialInterface()
 	{
-		
-		newParticle = null;
-		int attempts = 0;
-		while(newParticle == null && attempts < 100) {
-			newParticle = model.getNewAtom();
-			Random r = new Random();
-			int x = (int) (r.nextInt(Control.width) - newParticle.getR()*2);
-			int y = (int) (r.nextInt(Control.height) - newParticle.getR()*2);
-			newParticle.setPosition(newParticle.getR()+x, newParticle.getR()+y);
-			newParticle.setVelocity(r.nextDouble()*10, r.nextDouble()*10);
-			attempts++;
-			if(model.willCollideWhenPlaced(newParticle)) newParticle = null;
-		}
-		
 
 		info = new Information();
-		Control.currentQuestion = new Question();
-		fps = new TextComponent(null, "FPS: ", new Point(2, 2));
-		loggedinAs = new TextComponent(null, "", new Point(120, 2));
-		questionText = new Dialog(null, new Rectangle(520, 20, 160, 80));
-		questionText.setCloseable(true);
-		new Button(questionText, new Rectangle(0, 0, 23, 20), "GO!") {
+		fps = new TextComponent(null, "FPS: ", new Point(200, 2));
+		fps.setHidden(true);
+		loggedinAs = new TextComponent(null, "", new Point(20, 2));
+
+		questionDialog = new Dialog(null, new Rectangle(20, 90, 160, 80)) {
+			@Override
+			public void onClose() {
+				super.onClose();
+				Control.currentQuestion = null;
+				add.setHidden(false);
+			}
+		};
+
+		new TextComponent(questionDialog, "Question", new Point(5, 9), 16, Font.BOLD);
+		questionButton = new Button(questionDialog, new Rectangle(112, 52, 40, 20), "Mark") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
 				if(!onClickDown) {
-					Control.currentQuestion = new Question();
-					model.setState(Control.currentQuestion.generateQuestionEngine());
-					model.updateImages();
+					String answer = questionInput.getText();
+					if(!answer.isEmpty()) {
+						if(Control.currentQuestion.answer(answer)) {
+							setText("Correct");
+						} else {
+							setText("Incorrect");
+						}
+					}
 				}
 			}
 		};
-		new TextInput(questionText, "", new Rectangle(0, 20, 135, 20)) {
+		questionInput = new TextInput(questionDialog, "", new Rectangle(8, 52, 70, 20)) {
 			@Override
 			public void enter()
 			{
 				Control.currentQuestion.answer(text);
-
+			}
+			@Override
+			public boolean validate(char c)
+			{
+				return (Character.isDigit(c) || (c+"").equals("."));
 			}
 		};
-		questionText.setHidden(true);
+
+		questionText = new TextComponent(questionDialog, "", new Point(5, 32), 14);
+		questionDialog.setCloseable(true);
+		questionDialog.setHidden(true);
 		addMainButtons();
 		createViewer().setHidden(true);
 		createLogin();
-		
+
 		connectionError = new Dialog(null, new Rectangle(0,0,250,50)) {
 			@Override
 			public void setHidden(boolean hidden)
@@ -197,7 +234,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 		new TextComponent(connectionError, "Failed to connect to server", new Point(20, 20));	
 		connectionError.setHidden(true);
 		connectionError.setCloseable(true);
-	
+
 	}
 
 
@@ -207,39 +244,39 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 
 		Button.getImage("image:play.png"); //This adds it to our cache, so we wont have to look again.
 		new Button(null, new Rectangle(20+(0*70), 20, 64, 64), "image:pause.png") {
-			
+
 			boolean paused = false;
-			
+
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
 				if(onClickDown) {
-					Control.playing = !Control.playing;
+					Control.setPlaying(!Control.isPlaying());
 					Control.stepMode = false;
 					paused = !paused;
-					setText(Control.playing ? "image:pause.png" : "image:play.png");
-					
+					setText(Control.isPlaying() ? "image:pause.png" : "image:play.png");
+
 				}
 			}
 
 			@Override
 			public void drawInterface(Graphics2D g2d, int offsetX, int offsetY) {
 				super.drawInterface(g2d, offsetX, offsetY);
-				if(paused == Control.playing) {
+				if(paused == Control.isPlaying()) {
 					paused = !paused;
-					setText(Control.playing ? "image:pause.png" : "image:play.png");
+					setText(Control.isPlaying() ? "image:pause.png" : "image:play.png");
 				}
 			}
 
 		};
-		
+
 		new Button(null, new Rectangle(20+(1*70), 20, 64, 64), "image:step.png") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
 				if(!onClickDown) {
 					Control.stepMode = true;
-					Control.playing = true;
+					Control.setPlaying(true);
 				}
 			}
 		};
@@ -249,18 +286,19 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				super.click(p, onClickDown);
 				if(!onClickDown) {
 					if(Control.currentQuestion == null) {
-						model.getAtoms().clear();
-						Control.playing = true;
+						model.clear();
+						Control.setPlaying(true);
 					} else {
 						model.setState(Control.currentQuestion.generateQuestionEngine());
 						model.updateImages();
-						Control.playing = false;
+						collided1=null;collided2=null;
+						Control.setPlaying(false);
 					}
 				}
 			}
 		};
-		
-		new Button(null, new Rectangle(20+(3*70), 20, 64, 64), "image:add.png") {
+
+		add = new Button(null, new Rectangle(20+(3*70), 20, 64, 64), "image:add.png") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
@@ -281,32 +319,30 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 			}
 		};
 
-		
-		new Button(null, new Rectangle(20+(5*70), 20, 64, 64), "image:question.png") {
+
+		new Button(null, new Rectangle(20+(4*70), 20, 64, 64), "image:question.png") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
 				if(!onClickDown) {
-					Control.currentQuestion = new Question();
-					model.setState(Control.currentQuestion.generateQuestionEngine());
-					model.updateImages();
+					Control.setQuestion(new Question());
 				}
 			}
 		};
-		
-		new Button(null, new Rectangle(20+(6*70), 20, 64, 64), "image:login.png") {
+
+		new Button(null, new Rectangle(20+(5*70), 20, 64, 64), "image:login.png") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
+				login.centerOnScreen();
 				if(!onClickDown) {
-					login.centerOnScreen();
 					login.setHidden(!login.isHidden());
-					
+
 				}
 			}
 		};
-		
-		new Button(null, new Rectangle(20+(7*70), 20, 64, 64), "image:options.png") {
+
+		options = new Button(null, new Rectangle(20+(6*70), 20, 64, 64), "image:options.png") {
 			@Override
 			public void click(Point p, boolean onClickDown) {
 				super.click(p, onClickDown);
@@ -320,30 +356,21 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				}
 			}
 		};
+		options.setHidden(true);
 	}
 
 	private Dialog createLogin()
 	{
-		login = new Dialog(null, new Rectangle(0, 200, 200, 150));
+		login = new Dialog(null, new Rectangle(0, 82, 126, 106));
 		login.setHidden(true);
 		login.setCloseable(true);
-		loginButton = new Button(login, new Rectangle(80, 120, 60, 20), "Login") {
-			@Override
-			public void click(Point p, boolean onClickDown) {
-				super.click(p, onClickDown);
-				if(!onClickDown) {
-					setText("Connecting");
-					Control.manager.getSQL();
-					Question.setStudentID(studentID.getText());
-					if(Question.getStudentID() != 0) loggedinAs.setText("Logged in as: "+Control.getUsername());
-					
-					//login.setHidden(true);
-				}
-			}
-		};
+		login.centerOnScreen();
+		new TextComponent(login, "Login", new Point(8, 8), 16, Font.BOLD);
+		sid = new TextComponent(login, "Student ID", new Point(10, 30), 14);
+		final TextComponent usr = new TextComponent(login, "Username", new Point(10, 100), 12);
+		final TextComponent pss = new TextComponent(login, "Password", new Point(10, 140), 12);
 
-
-		studentID = new TextInput(login, "", new Rectangle(30, 30, 100, 20)) {
+		studentID = new TextInput(login, "", new Rectangle(10, 50, 60, 20)) {
 			@Override
 			public boolean validate(char keyChar)
 			{
@@ -356,18 +383,92 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				loginButton.click(new Point(), false);
 			}
 		};
-
-
-		username = new TextInput(login, "Username", new Rectangle(30, 60, 100, 20));
-		password = new TextInput(login, "Password", new Rectangle(30, 90, 100, 20));
-
-
+		loginButton = new Button(login, new Rectangle(76, 50, 40, 20), "Login") {
+			@Override
+			public void click(Point p, boolean onClickDown) {
+				super.click(p, onClickDown);
+				if(!onClickDown) {
+					//SELECT * FROM `teachers` WHERE `username`='PDacey' AND `password`='fermentum'
+					if(getText().equals("Logout"))
+					{
+						Control.setUsername("");
+						Control.setStudentID("");
+						studentID.setText("");
+						username.setText("");
+						password.setText("");
+						setText("Login");
+						return;
+					}
+					if(!studentID.getText().isEmpty() || (!username.getText().isEmpty()&&!password.getText().isEmpty())) {
+						sid.setText("Connecting");
+						SQL sql = Control.manager.getSQL();
+						options.setHidden(true);
+						if(Control.manager.isConnected()) {
+							if(!studentID.getText().isEmpty()) {
+								Control.setStudentID(studentID.getText());
+								login.setHidden(true);
+								sid.setText("Student ID");
+								setText("Logout");
+								loggedinAs.setText("Logged in as: "+Control.getUsername());
+							} else {
+								String user = sql.getValue("SELECT * FROM `teachers` WHERE `username`='"+username.getText()+"' AND `password`='"+password.text+"'", "username");
+								System.out.println(user);
+								if(!user.isEmpty()) {
+									Control.setUsername(user);
+									options.setHidden(false);
+									login.setHidden(true);
+									sid.setText("Student ID");
+									setText("Logout");
+									loggedinAs.setText("Logged in as: "+Control.getUsername());
+								} else {
+									sid.setText("Incorrect!");
+									sid.setColor(Color.RED);
+								}
+							}
+						} else sid.setText("Student ID");
+					}
+				}
+			}
+		};
+		tloginButton = new Button(login, new Rectangle(10, 76, 106, 20), "Teacher Login") {
+			boolean tLogin = false;
+			@Override
+			public void click(Point p, boolean onClickDown) {
+				super.click(p, onClickDown);
+				if(!onClickDown) {
+					tLogin = !tLogin;
+					usr.setHidden(!tLogin);
+					pss.setHidden(!tLogin);
+					username.setHidden(!tLogin);
+					password.setHidden(!tLogin);
+					if(tLogin) {
+						login.setSize(126,186);
+						setText("Hide T.Login");
+					} else {
+						login.setSize(126, 106);
+						setText("Teacher Login");
+					}
+				}
+			}
+		};
+		username = new TextInput(login, "", new Rectangle(10, 116, 106, 20));
+		password = new TextInput(login, "", new Rectangle(10, 156, 106, 20)) {
+			@Override
+			public String getText()
+			{
+				return "*************************".substring(0, text.length());
+			}
+		};
+		username.setHidden(true);
+		password.setHidden(true);
+		usr.setHidden(true);
+		pss.setHidden(true);
 		return login;
 	}
 
 	private ResultsViewer createViewer()
 	{
-		answerViewer = new ResultsViewer(new Rectangle(300, 300, 500, 600));
+		answerViewer = new ResultsViewer(new Rectangle(20, 180, 310, 600));
 		return answerViewer;
 	}
 
@@ -380,11 +481,12 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 
 	@Override
 	public void componentResized(ComponentEvent arg0) {
+		Control.model.scale(Control.width, Control.height, arg0.getComponent().getWidth(), arg0.getComponent().getHeight());
 		Control.width = arg0.getComponent().getWidth();
 		Control.height = arg0.getComponent().getHeight();
 		info.setContainer(new Rectangle(0, Control.height-Information.HEIGHT, Control.width, Information.HEIGHT));
 	}
-	
+
 	@Override
 	public void mouseWheelMoved(MouseWheelEvent event) {
 		double clicks = event.getPreciseWheelRotation();
@@ -398,7 +500,7 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				hasPressed = true;
 			}
 		}
-		if(!hasPressed && model.getAtoms().size() > 0)
+		if(!hasPressed && model.getAtoms().size() > 0 && Control.currentQuestion == null)
 		{
 			for(Particle p : model.getAtoms()) {
 				double radius = p.getR();
@@ -417,13 +519,14 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 	@Override
 	public void mousePressed(MouseEvent event) {
 		boolean hasPressed = false;
+		Information.selected = -1;
 		for(Interface i : Interface.mainInterfaces) {
 			if(i.canClick() && !i.isHidden() && i.getContainer().contains(event.getPoint())) {
 				i.clicked(event.getPoint(), true);
 				hasPressed = !(i instanceof Information); //Cheaty way of letting you click through the info box.
 			}
 		}
-		if(!hasPressed && model.getAtoms().size() > 0)
+		if(!hasPressed && model.getAtoms().size() > 0 && Control.currentQuestion == null)
 		{
 			for(int i = model.getAtoms().size()-1; i >= 0; i--)
 			{
@@ -445,10 +548,12 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				}
 			}
 		}
+		//if(currentDrag != null) model.getAtoms().remove(currentDrag);
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent event) {
+		//if(currentDrag == null) model.addAtom(currentDrag);
 		currentDrag = null;
 		currentScrollBar = null;
 		for(Interface i : Interface.mainInterfaces)
@@ -503,7 +608,8 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 
 	@Override
 	public void keyPressed(KeyEvent k) {
-		if(Control.selected != null && info.selected != -1) {
+		if(k.getKeyCode() == KeyEvent.VK_S) Control.takeSnapShot(); 
+		if(Control.selected != null && Information.selected != -1) {
 			char keyChar = k.getKeyChar();
 			if(Character.isDigit(keyChar) || keyChar == (char)46 || keyChar == (char)45) {
 				info.tempText = info.tempText + keyChar;
@@ -511,13 +617,13 @@ public class DisplayPanel extends JPanel implements MouseListener, MouseMotionLi
 				info.tempText = info.tempText.substring(0, info.tempText.length()-1);
 			} else if(keyChar == (char)10) {
 				info.saveValue(Control.selected);
-				info.selected = -1;
+				Information.selected = -1;
 			}
 		}
 		else if(Control.selectedTextBox != null)
-			Control.selectedTextBox.addCharacter(k.getKeyChar());
+			Control.selectedTextBox.addCharacter(k.getKeyCode(), k.getKeyChar());
 		else if(k.getKeyChar() == KeyEvent.VK_SPACE) {
-			Control.playing = !Control.playing;
+			Control.setPlaying(!Control.isPlaying());
 			Control.stepMode = false;
 		}
 	}
