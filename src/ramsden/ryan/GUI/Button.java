@@ -10,6 +10,8 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import ramsden.ryan.Control;
+
 public class Button extends Interface {
 
 	private boolean clicked;
@@ -56,7 +58,7 @@ public class Button extends Interface {
 			BufferedImage image = DisplayPanel.images.get(s);
 			if(image == null) {
 				try {
-					image = ImageIO.read(new File("img/"+s.split("image:")[1]));
+					image = ImageIO.read(Control.class.getResourceAsStream("/img/"+s.split("image:")[1]));
 					DisplayPanel.images.put(s, image);
 				} catch (IOException e) {
 					e.printStackTrace();
